@@ -179,15 +179,18 @@ def main_worker(gpu, ngpus_per_node, args=args):
 
                 if not args.multiprocessing_distributed or (args.multiprocessing_distributed
                                                             and args.rank % ngpus_per_node == 0):
-                    writer.add_scalar('silog_loss', loss, global_step)
-                    writer.add_scalar('learning_rate', current_lr, global_step)
-                    writer.add_scalar('var average', var_sum.item()/var_cnt, global_step)
+                    wandb.log({
+                        'silog_loss':loss,
+                        'learning_rate': current_lr,
+                        'var_average': var_sum.item()/var_cnt
+                    })
+
                     depth_gt = torch.where(depth_gt < 1e-3, depth_gt * 0 + 1e3, depth_gt)
-                    for i in range(num_log_images):
-                        writer.add_image('depth_gt/image/{}'.format(i), normalize_result(1/depth_gt[i, :, :, :].data), global_step)
-                        writer.add_image('depth_est/image/{}'.format(i), normalize_result(1/depth_est[i, :, :, :].data), global_step)
-                        writer.add_image('image/image/{}'.format(i), inv_normalize(image[i, :, :, :]).data, global_step)
-                    writer.flush()
+                    # for i in range(num_log_images):
+                    #     writer.add_image('depth_gt/image/{}'.format(i), normalize_result(1/depth_gt[i, :, :, :].data), global_step)
+                    #     writer.add_image('depth_est/image/{}'.format(i), normalize_result(1/depth_est[i, :, :, :].data), global_step)
+                    #     writer.add_image('image/image/{}'.format(i), inv_normalize(image[i, :, :, :]).data, global_step)
+                    # writer.flush()
 
             if args.do_online_eval and global_step and global_step % args.eval_freq == 0 and not model_just_loaded:
                 time.sleep(0.1)
@@ -228,10 +231,10 @@ def main_worker(gpu, ngpus_per_node, args=args):
 
         epoch += 1
        
-    if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
-        writer.close()
-        if args.do_online_eval:
-            eval_summary_writer.close()
+    # if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+    #     writer.close()
+    #     if args.do_online_eval:
+    #         eval_summary_writer.close()
 
 
 def online_eval(model, dataloader_eval, gpu, ngpus, post_process=False):
